@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>東京近郊・川遊びインタラクティブガイド</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals with River Blue Accent -->
+    <!-- Application Structure Plan: A user-centric, dashboard-style SPA. The core is an interactive filtering system allowing users to select criteria (Purpose, Area, Access, etc.). Results are displayed as dynamic cards. A "Spotlight" section provides deeper dives into key locations, and an interactive chart visualizes comparisons based on user-selected metrics (e.g., cost vs. facility score). This structure moves from the report's linear format to a task-oriented flow, empowering users to immediately find relevant spots based on their specific needs, which is more effective for trip planning. -->
+    <!-- Visualization & Content Choices:
+        - Report Info: Spot comparison data (cost, facilities, crowds). Goal: Compare options. Viz: Interactive Radar Chart (Chart.js). Interaction: Users can add/remove spots from the chart via checkboxes on the spot cards to directly compare their top choices. Justification: A radar chart is excellent for comparing multiple quantitative metrics across several items simultaneously, offering a quick visual summary of strengths and weaknesses.
+        - Report Info: Spot details (description, access, activities). Goal: Inform & Organize. Viz: Dynamic Card Grid (HTML/Tailwind/JS). Interaction: Users apply filters (buttons/dropdowns) which instantly re-render the grid to show only matching spots. Cards are clickable to reveal more detailed text. Justification: Cards provide a scannable, visually appealing summary. Filtering is the most direct way for users to narrow down the vast number of options to a manageable set.
+        - Report Info: Safety/Manners section. Goal: Inform & Warn. Viz: Tabbed content block (HTML/Tailwind/JS). Interaction: Users click tabs for "Safety," "Gear," and "Manners." Justification: Tabs organize critical but dense information into digestible chunks, preventing overwhelm while keeping it easily accessible.
+        - CONFIRMATION: NO SVG graphics used. NO Mermaid JS used.
+    -->
+    <style>
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: #FDFBF8;
+            color: #3a3a3a;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .filter-btn.active {
+            background-color: #3B82F6;
+            color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .card-enter {
+            animation: card-enter 0.5s ease-out forwards;
+        }
+        @keyframes card-enter {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body class="bg-[#FDFBF8]">
+
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <h1 class="text-2xl md:text-3xl font-bold text-blue-600">東京近郊 川遊びインタラクティブガイド</h1>
+            <nav>
+                <a href="#finder" class="text-gray-600 hover:text-blue-600 transition duration-300">スポット検索</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <section id="intro" class="text-center mb-12">
+            <h2 class="text-3xl md:text-4xl font-bold mb-4 text-gray-800">あなたにぴったりの清流を見つけよう</h2>
+            <p class="max-w-3xl mx-auto text-gray-600">
+                都会の喧騒を離れ、最高の夏の一日を過ごしませんか？このガイドは、ご提供いただいた専門家レポートに基づき、あなたの目的や条件に合った川遊びスポットを簡単に見つけるためのツールです。下のフィルターを使って、理想の場所を探し始めましょう。
+            </p>
+        </section>
+
+        <section id="finder" class="mb-12">
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+                <h3 class="text-2xl font-bold mb-6 text-center text-gray-700">スポットファインダー</h3>
+
+                <div class="space-y-6">
+                    <div>
+                        <label class="font-semibold text-gray-700 mb-2 block">目的で探す:</label>
+                        <div id="purpose-filters" class="flex flex-wrap gap-2"></div>
+                    </div>
+                    <div>
+                        <label class="font-semibold text-gray-700 mb-2 block">エリアで探す:</label>
+                        <div id="area-filters" class="flex flex-wrap gap-2"></div>
+                    </div>
+                    <div class="grid md:grid-cols-3 gap-4">
+                        <div>
+                            <label for="access-filter" class="font-semibold text-gray-700 mb-2 block">アクセス:</label>
+                            <select id="access-filter" class="w-full p-2 border rounded-md bg-white focus:ring-2 focus:ring-blue-500 transition"></select>
+                        </div>
+                        <div>
+                            <label for="pet-filter" class="font-semibold text-gray-700 mb-2 block">ペット:</label>
+                            <select id="pet-filter" class="w-full p-2 border rounded-md bg-white focus:ring-2 focus:ring-blue-500 transition"></select>
+                        </div>
+                        <div>
+                            <label for="sort-order" class="font-semibold text-gray-700 mb-2 block">並び順:</label>
+                            <select id="sort-order" class="w-full p-2 border rounded-md bg-white focus:ring-2 focus:ring-blue-500 transition"></select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="results" class="mb-12">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-2xl font-bold text-gray-800">検索結果</h3>
+                <p id="results-count" class="text-gray-600 font-semibold"></p>
+            </div>
+            <div id="spots-grid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            </div>
+        </section>
+
+        <section id="comparison-chart-section" class="mb-12 bg-white p-6 rounded-xl shadow-lg hidden">
+            <h3 class="text-2xl font-bold mb-6 text-center text-gray-700">スポット比較チャート</h3>
+            <p class="text-center text-gray-600 mb-4">各スポットカードの「比較する」にチェックを入れると、下のチャートで性能を比較できます。（3つ以上推奨）</p>
+            <div class="chart-container">
+                <canvas id="comparisonChart"></canvas>
+            </div>
+        </section>
+
+        <section id="safety" class="bg-white p-6 rounded-xl shadow-lg">
+            <h3 class="text-2xl font-bold mb-6 text-center text-gray-700">安全とマナー</h3>
+            <p class="text-center text-gray-600 mb-6 max-w-2xl mx-auto">
+                楽しい思い出を悲劇に変えないために。自然への敬意を払い、安全に楽しむための知識は、最高の準備です。出発前に必ずご確認ください。
+            </p>
+            <div>
+                <div class="border-b border-gray-200">
+                    <nav id="safety-tabs" class="-mb-px flex space-x-6" aria-label="Tabs">
+                    </nav>
+                </div>
+                <div id="safety-content" class="mt-6">
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-gray-800 text-white mt-12">
+        <div class="container mx-auto px-4 py-6 text-center">
+            <p>&copy; 2025 川遊びインタラクティブガイド. All rights reserved.</p>
+            <p class="text-sm text-gray-400 mt-2">このアプリケーションは提供されたレポートに基づき、情報探索を目的として生成されました。</p>
+        </div>
+    </footer>
+
+    <script src="js/app.js" defer></script>
+</body>
+</html>

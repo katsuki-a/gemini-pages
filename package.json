@@ -1,0 +1,15 @@
+{
+  "name": "kawa-asobi-tokyo-guide",
+  "version": "1.0.0",
+  "description": "An interactive guide to river spots near Tokyo.",
+  "main": "index.html",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@playwright/test": "^1.45.3"
+  }
+}
