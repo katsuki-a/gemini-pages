@@ -1,0 +1,15 @@
+# Dependencies
+/node_modules
+
+# Playwright reports
+/playwright-report/
+/test-results/
+
+# Cache
+.cache/
+.npm/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

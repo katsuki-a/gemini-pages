@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>川遊びガイド - テストランナー</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        h1 { color: #333; }
+        .test-results { list-style-type: none; padding-left: 0; }
+        .test-pass { color: green; }
+        .test-fail { color: red; }
+        .summary { font-weight: bold; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>川遊びガイド - テストランナー</h1>
+    <p>ブラウザのコンソール（F12）と、このページでテスト結果を確認してください。</p>
+    <ul id="test-results" class="test-results"></ul>
+    <div id="summary" class="summary"></div>
+
+    <!-- Application logic to be tested -->
+    <script src="../js/app.js"></script>
+
+    <!-- Test Runner Logic -->
+    <script>
+        const testResultsEl = document.getElementById('test-results');
+        const summaryEl = document.getElementById('summary');
+        let testsPassed = 0;
+        let testsFailed = 0;
+
+        // Simple assertion function
+        function assert(condition, message) {
+            const li = document.createElement('li');
+            if (condition) {
+                li.className = 'test-pass';
+                li.textContent = `✅ PASS: ${message}`;
+                testsPassed++;
+                console.log(`PASS: ${message}`);
+            } else {
+                li.className = 'test-fail';
+                li.textContent = `❌ FAIL: ${message}`;
+                testsFailed++;
+                console.error(`FAIL: ${message}`);
+            }
+            testResultsEl.appendChild(li);
+        }
+
+        function assertEquals(actual, expected, message) {
+            assert(actual === expected, `${message} | Expected: ${expected}, Got: ${actual}`);
+        }
+
+        function testSuite(name, tests) {
+            console.group(name);
+            const h2 = document.createElement('h2');
+            h2.textContent = name;
+            testResultsEl.appendChild(h2);
+            tests();
+            console.groupEnd();
+        }
+
+        // --- Test Cases ---
+
+        testSuite('Filter Logic', () => {
+            // Reset filters before each test concept
+            currentFilters = { purpose: 'all', area: 'all', access: 'all', pet: 'all' };
+
+            let results = getFilteredAndSortedSpots();
+            assertEquals(results.length, 13, 'Initially, all 13 spots should be returned');
+
+            currentFilters.purpose = 'BBQ';
+            results = getFilteredAndSortedSpots();
+            assertEquals(results.length, 5, 'Filtering by purpose "BBQ" should return 5 spots');
+            assert(results.every(s => s.purpose.includes('BBQ')), 'All returned spots should include "BBQ" purpose');
+
+            currentFilters.area = '東京';
+            results = getFilteredAndSortedSpots();
+            assertEquals(results.length, 2, 'Filtering by purpose "BBQ" and area "東京" should return 2 spots');
+
+            currentFilters.purpose = '隠れ家';
+            currentFilters.area = 'all';
+            currentFilters.access = '車';
+            results = getFilteredAndSortedSpots();
+            assertEquals(results.length, 3, 'Filtering by purpose "隠れ家" and access "車" should return 3 spots');
+        });
+
+        testSuite('Sort Logic', () => {
+            currentFilters = { purpose: 'all', area: 'all', access: 'all', pet: 'all' };
+
+            currentSort = 'cost_asc'; // Sort by cost ascending
+            let results = getFilteredAndSortedSpots();
+            assertEquals(results[0].name, '神奈川県立秦野戸川公園', 'First spot should be cheapest (cost: 1)');
+            assert(results[0].cost <= results[results.length - 1].cost, 'Results should be sorted by cost ascending');
+
+            currentSort = 'facilities_desc'; // Sort by facilities descending
+            results = getFilteredAndSortedSpots();
+            assertEquals(results[0].name, '神奈川県立秦野戸川公園', 'First spot should have best facilities (facilities: 5)');
+            assert(results[0].facilities >= results[results.length - 1].facilities, 'Results should be sorted by facilities descending');
+        });
+
+        // --- Final Summary ---
+        summaryEl.textContent = `Test Complete. Passed: ${testsPassed}, Failed: ${testsFailed}`;
+        if (testsFailed > 0) {
+            summaryEl.className += ' test-fail';
+        } else {
+            summaryEl.className += ' test-pass';
+        }
+
+    </script>
+</body>
+</html>
